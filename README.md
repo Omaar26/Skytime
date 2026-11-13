@@ -10,11 +10,11 @@ dotnet run
 
 The API listens on `http://localhost:5012` when started with the checked-in launch profile.
 
-The real SPHEREx path is implemented in `image-service/`. The app remains in mock mode by default. See [the image service guide](image-service/README.md) to install and run it, then enable `DataMode=spherex` to search IRSA.
+The real SPHEREx path is implemented in `image-service/`. The app defaults to `DataMode=spherex`, so start the image service first (see [the image service guide](image-service/README.md)). Run `DataMode=mock dotnet run` for generated demo frames without it.
 
 ## Routes
 
-- `GET /api/frames?ra=...&dec=...&fov=...` — mock frames by default; real IRSA results when `DataMode=spherex`.
+- `GET /api/frames?ra=...&dec=...&fov=...` — real IRSA results by default (`DataMode=spherex`); generated mock frames when `DataMode=mock`.
 - `GET /api/frames/{id}/image` — mock SVG, catalog sample PNG, or SPHEREx PNG cutout.
 - `GET /api/targets` — preset sky coordinates.
 - `GET /api/catalog/targets` — sample observation catalog.
@@ -35,6 +35,6 @@ It intentionally reports errors while the sample catalog contains placeholder va
 
 ## API checks
 
-With the app running, run `python3 tests/test_sample_targets.py` to check all five preset frame sets and images. Set `SKYTIME_BASE_URL` to override the default API address. `tests/catalog-api.ps1` remains the PowerShell smoke check for the handoff catalog routes, CORS, and error responses.
+With the app running in mock mode (`DataMode=mock dotnet run`), run `python3 tests/test_sample_targets.py` to check all five preset frame sets and images. Set `SKYTIME_BASE_URL` to override the default API address. `tests/catalog-api.ps1` remains the PowerShell smoke check for the handoff catalog routes, CORS, and error responses.
 
 The API contract for the frames and target endpoints is documented in [API_CONTRACT.md](API_CONTRACT.md).

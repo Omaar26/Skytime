@@ -169,7 +169,7 @@ Returns `image/png` bytes for a frame id previously returned by `/cutout`. `404`
 ## 4. Backend behavior (for the backend team)
 
 - Cache key: `ra` and `dec` rounded to 4 decimals, plus `fov` rounded to 3 decimals.
-- `DataMode` in `appsettings.json` selects `mock` or `spherex`. The default is `mock`; set it to `spherex` after starting the Python service to query IRSA. **The mock must always keep working**, so the frontend is never blocked.
+- `DataMode` in `appsettings.json` selects `mock` or `spherex`. The default is `spherex`, which needs the Python service running. Set `DataMode=mock` to use generated frames without it. **The mock must always keep working**, so the frontend is never blocked.
 - Mock frames follow this contract. The five presets return distinct IDs and generated SVGs with a dot that moves between frames. Custom coordinates retain a generic simulated fallback.
 - CORS: allow any origin during the hackathon.
 
@@ -193,3 +193,4 @@ Do not implement these now. The names are reserved so we don't clash later.
 |---|---|---|
 | (start) | v1.0 created | |
 | 2026-11-13 | Added five sample target presets with explicitly simulated frame sets | |
+| 2026-11-13 | `DataMode` now defaults to `spherex`; `mock` is opt-in | |

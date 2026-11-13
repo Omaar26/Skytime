@@ -15,7 +15,7 @@ Run these commands from `image-service/`. The API is available at `http://localh
 
 ## Connect the .NET backend
 
-The .NET backend stays in mock mode by default. Start this service, then set the backend environment variables before running Skytime:
+The .NET backend defaults to `DataMode=spherex`. Start this service, then run Skytime (the variables below are only needed to override the defaults, e.g. `DataMode=mock`):
 
 ```sh
 DataMode=spherex ImageService__BaseUrl=http://localhost:8000 dotnet run

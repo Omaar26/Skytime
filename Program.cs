@@ -2,8 +2,14 @@ using Skytime.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Keep the contract's default port, while allowing isolated test runs to override it.
-builder.WebHost.UseUrls(builder.Configuration["urls"] ?? "http://localhost:5012");
+// Keep the contract's default port locally, while letting Azure App Service
+// (ASPNETCORE_URLS / WEBSITES_PORT / PORT) or isolated test runs (--urls) override it.
+var configuredUrls = builder.Configuration["urls"]
+    ?? Environment.GetEnvironmentVariable("ASPNETCORE_URLS")
+    ?? (Environment.GetEnvironmentVariable("WEBSITES_PORT") is { Length: > 0 } wp ? $"http://0.0.0.0:{wp}" : null)
+    ?? (Environment.GetEnvironmentVariable("PORT") is { Length: > 0 } p ? $"http://0.0.0.0:{p}" : null)
+    ?? "http://localhost:5012";
+builder.WebHost.UseUrls(configuredUrls);
 
 builder.Services
     .AddControllers()
@@ -21,7 +27,7 @@ builder.Services.AddHttpClient<ImageServiceClient>(client =>
 {
     var baseUrl = builder.Configuration["ImageService:BaseUrl"] ?? "http://localhost:8000";
     client.BaseAddress = new Uri(baseUrl.TrimEnd('/') + "/");
-    client.Timeout = TimeSpan.FromSeconds(90);
+    client.Timeout = TimeSpan.FromSeconds(190);
 });
 
 var app = builder.Build();
