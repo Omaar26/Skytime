@@ -159,8 +159,8 @@ Returns `200 {"status":"ok"}`. Used by the backend to check the service is alive
 }
 ```
 
-- The service renders and **saves each PNG** while handling this call, so a later `/image/{id}` is instant.
-- Error responses use `{"error":{"code":"...","message":"..."}}` with these codes: `NO_DATA` (HTTP 404), `UPSTREAM_ERROR` (HTTP 502). The backend translates them into A4 codes.
+- The service searches SPHEREx DR1 and QR3 products at IRSA, requests centered SPHEREx cutouts, renders and **saves each PNG** while handling this call, so a later `/image/{id}` is instant.
+- Error responses use `{"error":{"code":"...","message":"..."}}` with these codes: `NO_DATA` (HTTP 404), `UPSTREAM_ERROR` (HTTP 502). The backend maps `NO_DATA` to a successful response with an empty `frames` array and maps upstream failures to its A4 error codes.
 
 ### B3. `GET /image/{id}`
 
@@ -169,7 +169,7 @@ Returns `image/png` bytes for a frame id previously returned by `/cutout`. `404`
 ## 4. Backend behavior (for the backend team)
 
 - Cache key: `ra` and `dec` rounded to 4 decimals, plus `fov` rounded to 3 decimals.
-- A config flag `UseMock` (`appsettings.json`) switches between fake data and the real image service. **The mock must always keep working**, so the frontend is never blocked.
+- `DataMode` in `appsettings.json` selects `mock` or `spherex`. The default is `mock`; set it to `spherex` after starting the Python service to query IRSA. **The mock must always keep working**, so the frontend is never blocked.
 - Mock frames follow this contract. The five presets return distinct IDs and generated SVGs with a dot that moves between frames. Custom coordinates retain a generic simulated fallback.
 - CORS: allow any origin during the hackathon.
 

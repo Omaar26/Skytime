@@ -17,6 +17,12 @@ builder.Services.AddCors(o => o.AddDefaultPolicy(p =>
 builder.Services.AddOpenApi();
 builder.Services.AddSingleton<CatalogService>();
 builder.Services.AddSingleton<SampleTargetService>();
+builder.Services.AddHttpClient<ImageServiceClient>(client =>
+{
+    var baseUrl = builder.Configuration["ImageService:BaseUrl"] ?? "http://localhost:8000";
+    client.BaseAddress = new Uri(baseUrl.TrimEnd('/') + "/");
+    client.Timeout = TimeSpan.FromSeconds(90);
+});
 
 var app = builder.Build();
 

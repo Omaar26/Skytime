@@ -10,10 +10,12 @@ dotnet run
 
 The API listens on `http://localhost:5012` when started with the checked-in launch profile.
 
+The real SPHEREx path is implemented in `image-service/`. The app remains in mock mode by default. See [the image service guide](image-service/README.md) to install and run it, then enable `DataMode=spherex` to search IRSA.
+
 ## Routes
 
-- `GET /api/frames?ra=...&dec=...&fov=...` — mock frames for a sky patch.
-- `GET /api/frames/{id}/image` — mock SVG image or a catalog observation PNG.
+- `GET /api/frames?ra=...&dec=...&fov=...` — mock frames by default; real IRSA results when `DataMode=spherex`.
+- `GET /api/frames/{id}/image` — mock SVG, catalog sample PNG, or SPHEREx PNG cutout.
 - `GET /api/targets` — preset sky coordinates.
 - `GET /api/catalog/targets` — sample observation catalog.
 - `GET /api/catalog/targets/{id}/observations` — observations for a catalog target.

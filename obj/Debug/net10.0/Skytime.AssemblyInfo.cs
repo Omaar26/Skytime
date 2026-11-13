@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("Skytime")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+ac14e872c4cb17f0fd295e7e6edbcd22b3ba2497")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+5b708793c25ebec0fbe127657c54b3fb1a9d631f")]
 [assembly: System.Reflection.AssemblyProductAttribute("Skytime")]
 [assembly: System.Reflection.AssemblyTitleAttribute("Skytime")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

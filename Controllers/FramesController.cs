@@ -1,4 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
+using System.Net;
+using System.Text.Json;
 using Skytime.Models;
 using Skytime.Services;
 
@@ -12,16 +14,24 @@ public class FramesController : ControllerBase
     private const int ImageSize = 200;
     private readonly CatalogService _catalog;
     private readonly SampleTargetService _targets;
+    private readonly ImageServiceClient _imageService;
+    private readonly bool _useSpherex;
 
-    public FramesController(CatalogService catalog, SampleTargetService targets)
+    public FramesController(
+        CatalogService catalog,
+        SampleTargetService targets,
+        ImageServiceClient imageService,
+        IConfiguration configuration)
     {
         _catalog = catalog;
         _targets = targets;
+        _imageService = imageService;
+        _useSpherex = string.Equals(configuration["DataMode"], "spherex", StringComparison.OrdinalIgnoreCase);
     }
 
     // A1: GET /api/frames?ra=..&dec=..&fov=..
     [HttpGet]
-    public IActionResult Get(double? ra, double? dec, double? fov)
+    public async Task<IActionResult> Get(double? ra, double? dec, double? fov, CancellationToken cancellationToken)
     {
         if (ra is null || !(ra.Value >= 0 && ra.Value <= 360))
             return Fail(400, "INVALID_RA", "RA is required and must be a number between 0 and 360.");
@@ -36,6 +46,9 @@ public class FramesController : ControllerBase
         double fovValue = fov ?? 0.1;
         if (!(fovValue >= 0.01 && fovValue <= 0.5))
             return Fail(400, "INVALID_FOV", "FOV must be a number between 0.01 and 0.5.");
+
+        if (_useSpherex)
+            return await GetSpherexFrames(ra.Value, dec.Value, fovValue, cancellationToken);
 
         var selectedTarget = _targets.FindByCoordinates(ra.Value, dec.Value);
         var targetId = selectedTarget?.Id ?? "custom";
@@ -60,7 +73,7 @@ public class FramesController : ControllerBase
 
     // A2: GET /api/frames/{id}/image
     [HttpGet("{id}/image")]
-    public IActionResult GetImage(string id)
+    public async Task<IActionResult> GetImage(string id, CancellationToken cancellationToken)
     {
         var catalogImage = _catalog.GetImageForObservation(id);
         if (!string.IsNullOrWhiteSpace(catalogImage) && catalogImage.StartsWith("/images/", StringComparison.Ordinal))
@@ -71,6 +84,30 @@ public class FramesController : ControllerBase
             if (fullPath.StartsWith(imageRoot + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase) &&
                 System.IO.File.Exists(fullPath))
                 return PhysicalFile(fullPath, "image/png");
+        }
+
+        if (id.StartsWith("spherex-", StringComparison.OrdinalIgnoreCase))
+        {
+            try
+            {
+                using var imageResponse = await _imageService.GetImageAsync(id, cancellationToken);
+                if (imageResponse.StatusCode == HttpStatusCode.NotFound)
+                    return Fail(404, "FRAME_NOT_FOUND", $"No frame with id '{id}'.");
+                if (imageResponse.StatusCode == HttpStatusCode.GatewayTimeout || imageResponse.StatusCode == HttpStatusCode.RequestTimeout)
+                    return Fail(504, "IMAGE_SERVICE_TIMEOUT", "The SPHEREx image service took too long to respond.");
+                if (!imageResponse.IsSuccessStatusCode)
+                    return Fail(502, "IMAGE_SERVICE_ERROR", "The SPHEREx image service could not return this image.");
+                var imageBytes = await imageResponse.Content.ReadAsByteArrayAsync(cancellationToken);
+                return File(imageBytes, "image/png");
+            }
+            catch (TaskCanceledException) when (!cancellationToken.IsCancellationRequested)
+            {
+                return Fail(504, "IMAGE_SERVICE_TIMEOUT", "The SPHEREx image service took too long to respond.");
+            }
+            catch (HttpRequestException)
+            {
+                return Fail(502, "IMAGE_SERVICE_ERROR", "The SPHEREx image service is unavailable.");
+            }
         }
 
         if (!TryGetMockFrame(id, out var targetId, out int i) ||
@@ -99,6 +136,52 @@ public class FramesController : ControllerBase
     // Helpers
     private IActionResult Fail(int status, string code, string message) =>
         StatusCode(status, new ApiError(new ErrorBody(code, message)));
+
+    private async Task<IActionResult> GetSpherexFrames(double ra, double dec, double fov, CancellationToken cancellationToken)
+    {
+        try
+        {
+            using var response = await _imageService.GetCutoutAsync(ra, dec, fov, cancellationToken);
+            if (response.StatusCode == HttpStatusCode.NotFound)
+                return Ok(new FramesResponse(ra, dec, fov, 0, []));
+            if (response.StatusCode == HttpStatusCode.GatewayTimeout || response.StatusCode == HttpStatusCode.RequestTimeout)
+                return Fail(504, "IMAGE_SERVICE_TIMEOUT", "The SPHEREx image service took too long to respond.");
+            if (!response.IsSuccessStatusCode)
+                return Fail(502, "IMAGE_SERVICE_ERROR", "The SPHEREx image service could not search the archive.");
+
+            var serviceResult = await JsonSerializer.DeserializeAsync<ImageServiceFramesResponse>(
+                await response.Content.ReadAsStreamAsync(cancellationToken),
+                new JsonSerializerOptions(JsonSerializerDefaults.Web),
+                cancellationToken);
+            if (serviceResult is null)
+                return Fail(502, "IMAGE_SERVICE_ERROR", "The SPHEREx image service returned an invalid response.");
+
+            var frames = serviceResult.Frames.Select(frame => new Frame(
+                frame.Id,
+                frame.Mjd,
+                frame.Date,
+                frame.Detector,
+                frame.WavelengthMin,
+                frame.WavelengthMax,
+                frame.Width,
+                frame.Height,
+                frame.Flags,
+                $"/api/frames/{frame.Id}/image")).ToList();
+            return Ok(new FramesResponse(ra, dec, fov, frames.Count, frames));
+        }
+        catch (TaskCanceledException) when (!cancellationToken.IsCancellationRequested)
+        {
+            return Fail(504, "IMAGE_SERVICE_TIMEOUT", "The SPHEREx image service took too long to respond.");
+        }
+        catch (HttpRequestException)
+        {
+            return Fail(502, "IMAGE_SERVICE_ERROR", "The SPHEREx image service is unavailable.");
+        }
+        catch (JsonException)
+        {
+            return Fail(502, "IMAGE_SERVICE_ERROR", "The SPHEREx image service returned invalid JSON.");
+        }
+    }
 
     private static bool TryGetMockFrame(string id, out string targetId, out int index)
     {
