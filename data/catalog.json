@@ -1,0 +1,37 @@
+{
+  "sampleData": true,
+  "notice": "SAMPLE DATA ONLY — placeholders for demonstrating the API; not verified SPHEREx observations.",
+  "targets": [
+    {
+      "id": "sample-target",
+      "name": "Sample target (not a real target)",
+      "observations": [
+        {
+          "date": "2026-01-01",
+          "observationId": "SAMPLE-OBSERVATION-1",
+          "release": "SAMPLE ONLY",
+          "detector": "SAMPLE ONLY",
+          "image": "/images/sample-target/observation-1.png",
+          "fitsSource": "SAMPLE ONLY — no FITS file",
+          "source": "SAMPLE DATA — not from an archive",
+          "sourceUrl": "SAMPLE ONLY — no source URL"
+        },
+        {
+          "date": "2026-01-02",
+          "observationId": "SAMPLE-OBSERVATION-2",
+          "release": "SAMPLE ONLY",
+          "detector": "SAMPLE ONLY",
+          "image": "/images/sample-target/observation-2.png",
+          "fitsSource": "SAMPLE ONLY — no FITS file",
+          "source": "SAMPLE DATA — not from an archive",
+          "sourceUrl": "SAMPLE ONLY — no source URL"
+        }
+      ]
+    },
+    {
+      "id": "sample-empty-target",
+      "name": "Sample target with no prepared observations",
+      "observations": []
+    }
+  ]
+}

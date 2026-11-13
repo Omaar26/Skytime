@@ -1,0 +1,47 @@
+[
+  {
+    "id": "barnards-star",
+    "name": "Barnard's Star",
+    "ra": 269.452077,
+    "dec": 4.693365,
+    "fov": 0.1,
+    "objectType": "M4V red dwarf",
+    "coordinateSource": "SIMBAD, J2000 ICRS"
+  },
+  {
+    "id": "epsilon-indi-b",
+    "name": "Epsilon Indi B (Ba/Bb)",
+    "ra": 331.0656,
+    "dec": -56.7901,
+    "fov": 0.1,
+    "objectType": "T dwarf binary",
+    "coordinateSource": "SIMPLE Brown Dwarf Archive, J2000"
+  },
+  {
+    "id": "wise-0855",
+    "name": "WISE 0855",
+    "ra": 133.795129,
+    "dec": -7.245147,
+    "fov": 0.1,
+    "objectType": "Y dwarf",
+    "coordinateSource": "NASA Space Apps challenge coordinates, J2000"
+  },
+  {
+    "id": "rw-aurigae",
+    "name": "RW Aurigae",
+    "ra": 76.956526,
+    "dec": 30.401438,
+    "fov": 0.1,
+    "objectType": "T Tauri variable star",
+    "coordinateSource": "SIMBAD, J2000 ICRS"
+  },
+  {
+    "id": "r-draconis",
+    "name": "R Draconis",
+    "ra": 248.167611,
+    "dec": 66.754979,
+    "fov": 0.1,
+    "objectType": "Mira variable star",
+    "coordinateSource": "SIMBAD, J2000 ICRS"
+  }
+]

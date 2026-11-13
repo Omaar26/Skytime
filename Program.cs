@@ -1,7 +1,9 @@
+using Skytime.Services;
+
 var builder = WebApplication.CreateBuilder(args);
 
-// Fixed port from the contract
-builder.WebHost.UseUrls("http://localhost:5000");
+// Keep the contract's default port, while allowing isolated test runs to override it.
+builder.WebHost.UseUrls(builder.Configuration["urls"] ?? "http://localhost:5000");
 
 builder.Services
     .AddControllers()
@@ -13,6 +15,8 @@ builder.Services.AddCors(o => o.AddDefaultPolicy(p =>
     p.AllowAnyOrigin().AllowAnyHeader().AllowAnyMethod()));
 
 builder.Services.AddOpenApi();
+builder.Services.AddSingleton<CatalogService>();
+builder.Services.AddSingleton<SampleTargetService>();
 
 var app = builder.Build();
 
@@ -24,6 +28,7 @@ if (app.Environment.IsDevelopment())
 // app.UseHttpsRedirection();   // disabled on purpose (we only use plain http)
 
 app.UseCors();
+app.UseMiddleware<ApiErrorMiddleware>();
 app.UseAuthorization();
 app.MapControllers();
 

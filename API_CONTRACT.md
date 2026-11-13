@@ -60,7 +60,7 @@ Base URL: `http://localhost:5000`
   "count": 3,
   "frames": [
     {
-      "id": "mock0",
+      "id": "mock-wise-0855-0",
       "mjd": 60800.0,
       "date": "2026-11-13",
       "detector": 1,
@@ -68,8 +68,8 @@ Base URL: `http://localhost:5000`
       "wavelengthMax": 1.1,
       "width": 200,
       "height": 200,
-      "flags": [],
-      "imageUrl": "/api/frames/mock0/image"
+      "flags": ["simulated"],
+      "imageUrl": "/api/frames/mock-wise-0855-0/image"
     }
   ]
 }
@@ -92,7 +92,7 @@ Base URL: `http://localhost:5000`
 
 ### A2. `GET /api/frames/{id}/image`: the picture
 
-- Returns the image bytes with `Content-Type: image/png`. (During the mock phase it returns `image/svg+xml`. Using `<img src=...>` works with both.)
+- Returns image bytes with `Content-Type: image/svg+xml` for the simulated sample frames. The SVG includes a `SIMULATED` label. Catalog sample observations continue to return PNGs.
 - **Image rules, which the animation depends on:**
   1. All frames from one query have the **same width and height**.
   2. All frames are **centered on the requested `ra`/`dec`**, so a fixed star stays at the same pixel and a moving object visibly shifts.
@@ -104,15 +104,15 @@ Returns the test targets from the challenge so the frontend doesn't hardcode the
 
 ```json
 [
-  { "name": "WISE 0855", "ra": 133.7951, "dec": -7.2452, "fov": 0.1 },
-  { "name": "Barnard's Star", "ra": 269.452, "dec": 4.693, "fov": 0.1 },
-  { "name": "Epsilon Indi", "ra": 330.840, "dec": -56.786, "fov": 0.1 },
-  { "name": "RW Aurigae", "ra": 76.957, "dec": 30.401, "fov": 0.1 },
-  { "name": "R Draconis", "ra": 248.175, "dec": 66.755, "fov": 0.1 }
+  { "name": "Barnard's Star", "ra": 269.452077, "dec": 4.693365, "fov": 0.1 },
+  { "name": "Epsilon Indi B (Ba/Bb)", "ra": 331.0656, "dec": -56.7901, "fov": 0.1 },
+  { "name": "WISE 0855", "ra": 133.795129, "dec": -7.245147, "fov": 0.1 },
+  { "name": "RW Aurigae", "ra": 76.956526, "dec": 30.401438, "fov": 0.1 },
+  { "name": "R Draconis", "ra": 248.167611, "dec": 66.754979, "fov": 0.1 }
 ]
 ```
 
-WISE 0855 comes from the challenge text (08h55m10.831s, -7°14′42.53″). **The other four are approximate** (J2000 positions from memory). Verify them against SIMBAD before the demo.
+Coordinates are J2000 sample target coordinates in `data/targets.json`. Each preset resolves to eight generated frames with target-specific IDs. Their `simulated` flag and image label are intentional: these are UI/demo frames, not observed SPHEREx data. Coordinates are from [SIMBAD for Barnard's Star](https://simbad.cds.unistra.fr/simbad/sim-id?Ident=Barnard%27s+Star), [SIMBAD for RW Aurigae](https://simbad.cds.unistra.fr/simbad/sim-id?Ident=RW+Aur), and [SIMBAD for R Draconis](https://simbad.cds.unistra.fr/simbad/sim-id?Ident=V%2A+R+Dra); WISE 0855 is from the challenge text; Epsilon Indi B uses the [SIMPLE Brown Dwarf Archive entry](https://simple-bd-archive.org/load_solo/epsilon%20IndiB).
 
 ### A4. Errors (all endpoints)
 
@@ -170,7 +170,7 @@ Returns `image/png` bytes for a frame id previously returned by `/cutout`. `404`
 
 - Cache key: `ra` and `dec` rounded to 4 decimals, plus `fov` rounded to 3 decimals.
 - A config flag `UseMock` (`appsettings.json`) switches between fake data and the real image service. **The mock must always keep working**, so the frontend is never blocked.
-- Mock frames follow this exact contract. The mock images are SVGs with a dot that moves between frames.
+- Mock frames follow this contract. The five presets return distinct IDs and generated SVGs with a dot that moves between frames. Custom coordinates retain a generic simulated fallback.
 - CORS: allow any origin during the hackathon.
 
 ## 5. Reserved for later (do NOT build until the MVP works)
@@ -192,3 +192,4 @@ Do not implement these now. The names are reserved so we don't clash later.
 | Date | Change | By |
 |---|---|---|
 | (start) | v1.0 created | |
+| 2026-11-13 | Added five sample target presets with explicitly simulated frame sets | |

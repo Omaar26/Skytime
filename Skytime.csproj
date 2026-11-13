@@ -10,4 +10,10 @@
     <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.14" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Content Update="data/catalog.json" CopyToOutputDirectory="PreserveNewest" />
+    <Content Update="data/targets.json" CopyToOutputDirectory="PreserveNewest" />
+    <None Update="images/**/*" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
 </Project>
