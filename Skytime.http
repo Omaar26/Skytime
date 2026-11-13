@@ -1,0 +1,6 @@
+@Skytime_HostAddress = http://localhost:5012
+
+GET {{Skytime_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
