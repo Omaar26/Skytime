@@ -8,7 +8,7 @@ This .NET 10 app combines the Skytime mock frames API with the catalog and image
 dotnet run
 ```
 
-The API listens on `http://localhost:5000`.
+The API listens on `http://localhost:5012` when started with the checked-in launch profile.
 
 ## Routes
 

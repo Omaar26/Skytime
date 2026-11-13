@@ -6,7 +6,7 @@
 ## 0. Big picture
 
 ```
-Frontend (React, :5173)  ──►  Backend (.NET, :5000)  ──►  Image service (Python, :8000)  ──►  NASA IRSA
+Frontend (React, :5173)  ──►  Backend (.NET, :5012)  ──►  Image service (Python, :8000)  ──►  NASA IRSA
         Contract A                    Contract B
 ```
 
@@ -17,7 +17,7 @@ Frontend (React, :5173)  ──►  Backend (.NET, :5000)  ──►  Image serv
 
 | Service | Port | How to start |
 |---|---|---|
-| Backend (.NET) | 5000 | `dotnet run --urls "http://localhost:5000"` |
+| Backend (.NET) | 5012 | `dotnet run` (checked-in launch profile) |
 | Image service (Python) | 8000 | `uvicorn main:app --port 8000` |
 | Frontend | 5173 | `npm run dev` (Vite default) |
 
@@ -36,7 +36,7 @@ Frontend (React, :5173)  ──►  Backend (.NET, :5000)  ──►  Image serv
 
 ## 2. Contract A: Frontend ↔ Backend
 
-Base URL: `http://localhost:5000`
+Base URL: `http://localhost:5012`
 
 ### A1. `GET /api/frames`: list the frames for a patch of sky
 
@@ -86,7 +86,7 @@ Base URL: `http://localhost:5000`
 | `wavelengthMin`, `wavelengthMax` | number | µm. |
 | `width`, `height` | int | Image size in pixels. |
 | `flags` | string[] | Warnings such as `"contaminated"`. **Empty array** if none, never `null`. |
-| `imageUrl` | string | **Relative** to the backend base URL. The frontend prepends `http://localhost:5000`. |
+| `imageUrl` | string | **Relative** to the backend base URL. The frontend prepends `http://localhost:5012`. |
 
 `frames` is an empty array (not an error) if the request was valid but there are no images. `count` equals `frames.length`.
 

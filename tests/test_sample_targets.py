@@ -12,7 +12,7 @@ from urllib.parse import urlencode
 from urllib.request import urlopen
 
 
-BASE_URL = os.environ.get("SKYTIME_BASE_URL", "http://localhost:5000").rstrip("/")
+BASE_URL = os.environ.get("SKYTIME_BASE_URL", "http://localhost:5012").rstrip("/")
 
 
 def get(path: str):

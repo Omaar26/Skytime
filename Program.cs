@@ -3,7 +3,7 @@ using Skytime.Services;
 var builder = WebApplication.CreateBuilder(args);
 
 // Keep the contract's default port, while allowing isolated test runs to override it.
-builder.WebHost.UseUrls(builder.Configuration["urls"] ?? "http://localhost:5000");
+builder.WebHost.UseUrls(builder.Configuration["urls"] ?? "http://localhost:5012");
 
 builder.Services
     .AddControllers()

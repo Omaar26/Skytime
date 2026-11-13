@@ -1,5 +1,5 @@
 $ErrorActionPreference = "Stop"
-$baseUrl = "http://localhost:5000"
+$baseUrl = "http://localhost:5012"
 $client = [System.Net.Http.HttpClient]::new()
 
 function Assert-True([bool]$condition, [string]$message) {
