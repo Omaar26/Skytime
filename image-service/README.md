@@ -1,6 +1,6 @@
 # SPHEREx image service
 
-This FastAPI service implements the backend's internal image-service contract. It searches the public IRSA SIA2 service for SPHEREx DR1 and QR3 images, requests IRSA cutouts centered on the requested sky position, renders each science image to PNG, and caches the image and query results locally.
+This FastAPI service implements the backend's internal image-service contract. It searches the public IRSA SIA2 service for SPHEREx DR1 and QR3 images and returns metadata promptly. It requests and renders each IRSA cutout to PNG only when `/image/{id}` is requested, then caches it locally.
 
 ## Run
 

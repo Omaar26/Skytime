@@ -36,3 +36,11 @@
 /home/omar/Skytime/bin/Debug/net10.0/images/sample-target/observation-1.png
 /home/omar/Skytime/bin/Debug/net10.0/images/sample-target/observation-2.png
 /home/omar/Skytime/bin/Debug/net10.0/data/targets.json
+/home/omar/Skytime/bin/Debug/net10.0/image-service/cache/queries/3669c2adc84ac0193c5b7103.json
+/home/omar/Skytime/bin/Debug/net10.0/image-service/cache/queries/spherex-44ca6d3876848f334ede.image.json
+/home/omar/Skytime/bin/Debug/net10.0/image-service/cache/queries/spherex-55d6559e51648c1a8f8d.image.json
+/home/omar/Skytime/bin/Debug/net10.0/image-service/cache/queries/spherex-60e76d6bc4932636c41a.image.json
+/home/omar/Skytime/bin/Debug/net10.0/image-service/cache/queries/spherex-6583162b8a7095f03bad.image.json
+/home/omar/Skytime/bin/Debug/net10.0/image-service/cache/queries/spherex-9fe6a811ad17e7fc75bd.image.json
+/home/omar/Skytime/bin/Debug/net10.0/image-service/cache/queries/spherex-b0b543b09680450a9a94.image.json
+/home/omar/Skytime/bin/Debug/net10.0/image-service/cache/queries/166c28c906351ac9ad18ca4b.json

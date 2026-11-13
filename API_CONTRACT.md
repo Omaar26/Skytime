@@ -159,7 +159,7 @@ Returns `200 {"status":"ok"}`. Used by the backend to check the service is alive
 }
 ```
 
-- The service searches SPHEREx DR1 and QR3 products at IRSA, requests centered SPHEREx cutouts, renders and **saves each PNG** while handling this call, so a later `/image/{id}` is instant.
+- The service searches SPHEREx DR1 and QR3 products at IRSA and returns frame metadata without downloading every image. It saves each image's cutout details; `/image/{id}` downloads, renders, and caches that PNG on first request.
 - Error responses use `{"error":{"code":"...","message":"..."}}` with these codes: `NO_DATA` (HTTP 404), `UPSTREAM_ERROR` (HTTP 502). The backend maps `NO_DATA` to a successful response with an empty `frames` array and maps upstream failures to its A4 error codes.
 
 ### B3. `GET /image/{id}`

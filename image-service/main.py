@@ -16,7 +16,7 @@ from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 import numpy as np
 import requests
 from astropy.io import fits
-from astropy.table import Table
+from astropy.io.votable import parse as parse_votable
 from astropy.time import Time
 from astropy.wcs import WCS
 from fastapi import FastAPI, HTTPException, Query
@@ -33,7 +33,9 @@ COLLECTIONS = (
 )
 CACHE_ROOT = Path(os.environ.get("SPHEREX_CACHE_DIR", Path(__file__).parent / "cache"))
 QUERY_CACHE_TTL_SECONDS = int(os.environ.get("SPHEREX_CACHE_TTL", "21600"))
-MAX_FRAMES = int(os.environ.get("SPHEREX_MAX_FRAMES", "24"))
+# Each frame requires a separate archive cutout and FITS render. Keep the
+# synchronous response bounded so the .NET API can return a frame list promptly.
+MAX_FRAMES = int(os.environ.get("SPHEREX_MAX_FRAMES", "6"))
 REQUEST_TIMEOUT_SECONDS = float(os.environ.get("SPHEREX_REQUEST_TIMEOUT", "60"))
 SAFE_ID = re.compile(r"^spherex-[0-9a-f]{20}$")
 
@@ -66,13 +68,19 @@ def _query_sia(ra: float, dec: float, size: float) -> list[dict]:
         ("DPTYPE", "image"),
         ("CALIB", "2"),
         ("FORMAT", "image/fits"),
-        ("MAXREC", "500"),
+        # Keep archive responses bounded: the SPHEREx epoch/band products can
+        # otherwise make a single cone search produce multi-megabyte tables.
+        ("MAXREC", "50"),
         ("RESPONSEFORMAT", "VOTABLE"),
     ]
     try:
         response = requests.get(SIA_URL, params=params, timeout=REQUEST_TIMEOUT_SECONDS)
         response.raise_for_status()
-        table = Table.read(io.BytesIO(response.content), format="votable")
+        # IRSA includes both FIELD name and ID attributes. Astropy otherwise
+        # prefers the generic IDs (col_0, col_1, ...) over the SIA column names.
+        table = parse_votable(io.BytesIO(response.content)).get_first_table().to_table(
+            use_names_over_ids=True
+        )
     except requests.Timeout as exc:
         raise _error(504, "IMAGE_SERVICE_TIMEOUT", "IRSA timed out while searching for SPHEREx images.") from exc
     except requests.RequestException as exc:
@@ -211,6 +219,49 @@ def _cached_query(query_key: str, now: float) -> dict | None:
     return None
 
 
+DOWNLOAD_ATTEMPTS = int(os.environ.get("SPHEREX_DOWNLOAD_ATTEMPTS", "3"))
+
+
+def _fetch_and_render(url: str) -> tuple[bytes, int, int, list[str]]:
+    """Download an IRSA cutout and render it, tolerating dropped connections.
+
+    IRSA cutouts are ~4 MB FITS files, but nearly all of that is the trailing
+    EPSF PSF table, which is never rendered. IRSA often resets the connection
+    mid-transfer, so a partial body that still holds the IMAGE extension is
+    accepted. If a partial body cannot be rendered, retry from scratch.
+    """
+    last_error: Exception | None = None
+    for _ in range(max(1, DOWNLOAD_ATTEMPTS)):
+        body = bytearray()
+        download_error: requests.RequestException | None = None
+        try:
+            with requests.get(url, timeout=REQUEST_TIMEOUT_SECONDS, stream=True) as response:
+                response.raise_for_status()
+                for chunk in response.iter_content(chunk_size=65536):
+                    body.extend(chunk)
+        except requests.Timeout as exc:
+            if not body:
+                last_error = exc
+                continue
+            download_error = exc
+        except requests.RequestException as exc:
+            if isinstance(exc, requests.HTTPError):
+                raise
+            download_error = exc
+
+        if body:
+            try:
+                return _render_png(bytes(body))
+            except ValueError as exc:
+                last_error = download_error or exc
+                continue
+        last_error = download_error or ValueError("IRSA returned an empty cutout.")
+
+    if last_error is None:
+        raise ValueError("IRSA could not provide a SPHEREx cutout.")
+    raise last_error
+
+
 def _download_and_cache(item: dict, ra: float, dec: float, size: float) -> tuple[str, int, int, list[str]]:
     image_dir, _ = _cache_dirs()
     image_id = "spherex-" + hashlib.sha256(item["key"].encode()).hexdigest()[:20]
@@ -223,12 +274,7 @@ def _download_and_cache(item: dict, ra: float, dec: float, size: float) -> tuple
             output_path.unlink(missing_ok=True)
 
     try:
-        response = requests.get(
-            _cutout_url(item["accessUrl"], ra, dec, size),
-            timeout=REQUEST_TIMEOUT_SECONDS,
-        )
-        response.raise_for_status()
-        png_bytes, width, height, flags = _render_png(response.content)
+        png_bytes, width, height, flags = _fetch_and_render(_cutout_url(item["accessUrl"], ra, dec, size))
     except requests.Timeout as exc:
         raise _error(504, "IMAGE_SERVICE_TIMEOUT", "IRSA timed out while creating a SPHEREx cutout.") from exc
     except requests.RequestException as exc:
@@ -240,6 +286,11 @@ def _download_and_cache(item: dict, ra: float, dec: float, size: float) -> tuple
     temp_path.write_bytes(png_bytes)
     temp_path.replace(output_path)
     return image_id, width, height, flags
+
+
+def _image_manifest_path(image_id: str) -> Path:
+    _, query_dir = _cache_dirs()
+    return query_dir / f"{image_id}.image.json"
 
 
 def _date_from_mjd(mjd: float) -> str:
@@ -274,12 +325,20 @@ def cutout(
         raise _error(404, "NO_DATA", "IRSA returned no SPHEREx images covering this position.")
 
     frames = []
+    _, query_dir = _cache_dirs()
     for item in candidates:
-        image_id, width, height, flags = _download_and_cache(item, ra, dec, size)
+        image_id = "spherex-" + hashlib.sha256(item["key"].encode()).hexdigest()[:20]
+        manifest = {"item": item, "ra": ra, "dec": dec, "size": size}
+        manifest_path = _image_manifest_path(image_id)
+        manifest_temp = manifest_path.with_suffix(".tmp")
+        manifest_temp.write_text(json.dumps(manifest, separators=(",", ":")), encoding="utf-8")
+        manifest_temp.replace(manifest_path)
         detector_match = re.search(r"D([1-6])_spx", item["accessUrl"], re.IGNORECASE)
         detector = int(detector_match.group(1)) if detector_match else 1
         em_min = item["emMin"]
         em_max = item["emMax"]
+        # SPHEREx pixels are about 6.2 arcsec; actual dimensions arrive with the PNG.
+        approximate_pixels = max(1, int(round(size * 3600 / 6.2)))
         frames.append({
             "id": image_id,
             "mjd": item["mjd"],
@@ -287,14 +346,13 @@ def cutout(
             "detector": detector,
             "wavelengthMin": em_min * 1_000_000 if em_min is not None else 0.75,
             "wavelengthMax": em_max * 1_000_000 if em_max is not None else 5.0,
-            "width": width,
-            "height": height,
-            "flags": flags,
+            "width": approximate_pixels,
+            "height": approximate_pixels,
+            "flags": [],
         })
     frames.sort(key=lambda frame: (frame["mjd"], frame["detector"], frame["id"]))
     result = {"ra": ra, "dec": dec, "fov": size, "count": len(frames), "frames": frames}
 
-    _, query_dir = _cache_dirs()
     cache_path = query_dir / f"{query_key}.json"
     temp_path = cache_path.with_suffix(".tmp")
     temp_path.write_text(json.dumps(result, separators=(",", ":")), encoding="utf-8")
@@ -309,7 +367,19 @@ def image(image_id: str):
     image_dir, _ = _cache_dirs()
     path = image_dir / f"{image_id}.png"
     if not path.is_file():
-        raise _error(404, "FRAME_NOT_FOUND", "Frame image not found.")
+        manifest_path = _image_manifest_path(image_id)
+        try:
+            manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+            _download_and_cache(
+                manifest["item"],
+                float(manifest["ra"]),
+                float(manifest["dec"]),
+                float(manifest["size"]),
+            )
+        except FileNotFoundError as exc:
+            raise _error(404, "FRAME_NOT_FOUND", "Frame image not found.") from exc
+        except (KeyError, ValueError, json.JSONDecodeError) as exc:
+            raise _error(404, "FRAME_NOT_FOUND", "Frame image not found.") from exc
     return FileResponse(path, media_type="image/png", filename=f"{image_id}.png")
 
 
