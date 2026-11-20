@@ -1,40 +1,91 @@
-# Skytime backend
+# Skytime
 
-This .NET 10 app combines the Skytime mock frames API with the catalog and image endpoints from the team handoff. The five challenge targets resolve to their own generated demo frame IDs and labeled simulated images.
+Explore real SPHEREx infrared image cutouts in a browser. Choose one of five preset targets or enter sky coordinates, then blink through returned frames, scrub the sequence, or compare a frame with the first frame from the same detector.
 
-## Run
+> Skytime is a working prototype for exploring survey data. It does not automatically detect moving objects or claim to find Planet X. Most checked preset results cover one observing day, and the difference view is a visual aid rather than calibrated photometry.
+
+## The app
+
+The viewer displays a returned SPHEREx frame with its observation date, detector, and wavelength range. Controls let you move through the available frames and switch between blink and difference views.
+
+![Skytime viewer showing Barnard's Star and a real SPHEREx frame](submission/figures/live_app_screenshot.png)
+
+The screenshot shows the app interface. Its instrument health and spectral panels are static placeholders, not real telemetry or measured spectra.
+
+## Real image data
+
+The image service searches SPHEREx Level-2 products through NASA/IPAC Infrared Science Archive (IRSA) SIA2 and requests cutouts around the selected sky position. Returned frames are oriented using FITS world-coordinate information and labelled with observation metadata.
+
+![Six SPHEREx field cutouts returned near WISE 0855](submission/figures/wise0855_real_frames.png)
+
+These are real field cutouts near WISE 0855. Skytime does not claim to detect WISE 0855 in them. Different detectors cover different wavelength bands, and brightness differences between bands do not by themselves indicate change over time.
+
+## Project components
+
+- **Frontend:** React and Vite single-page app in [`nasa-front/`](nasa-front/).
+- **Backend API:** ASP.NET Core on .NET 10 in this repository. It validates requests, caches results, and returns frame and target data.
+- **Image service:** Python and FastAPI in [`image-service/`](image-service/). It searches IRSA, fetches FITS cutouts, and renders PNGs for the viewer.
+
+## Run locally
+
+### Requirements
+
+- .NET 10 SDK
+- Python 3 and the packages listed in [`image-service/requirements.txt`](image-service/requirements.txt)
+- Node.js and npm for the frontend
+
+Start the image service first when using real archive data. Follow its [setup instructions](image-service/README.md), then run the API from this repository:
 
 ```sh
 dotnet run
 ```
 
-The API listens on `http://localhost:5012` when started with the checked-in launch profile.
+The checked-in launch profile serves the API at `http://localhost:5012`.
 
-The real SPHEREx path is implemented in `image-service/`. The app defaults to `DataMode=spherex`, so start the image service first (see [the image service guide](image-service/README.md)). Run `DataMode=mock dotnet run` for generated demo frames without it.
+Run the frontend in a second terminal:
 
-## Routes
+```sh
+cd nasa-front
+npm install
+npm run dev
+```
 
-- `GET /api/frames?ra=...&dec=...&fov=...` — real IRSA results by default (`DataMode=spherex`); generated mock frames when `DataMode=mock`.
-- `GET /api/frames/{id}/image` — mock SVG, catalog sample PNG, or SPHEREx PNG cutout.
-- `GET /api/targets` — preset sky coordinates.
-- `GET /api/catalog/targets` — sample observation catalog.
-- `GET /api/catalog/targets/{id}/observations` — observations for a catalog target.
-- `GET /images/{targetId}/{filename}` — catalog image files.
+For a demo without the image service, run the API in mock mode:
 
-The five target definitions are in `data/targets.json`. Their frame sequences and SVG images are generated for the demo and are not observed SPHEREx data. The separate catalog records and PNG fixtures under `data/catalog.json` and `images/` are also sample fixtures, not verified observations.
+```sh
+DataMode=mock dotnet run
+```
 
-## Catalog validation
+Mock frames are generated demo content, not observed SPHEREx images. If the image backend is unreachable, the frontend may also show a local procedural preview; that preview is not real archive data.
 
-The validator uses only Python's standard library:
+## API routes
+
+- `GET /api/frames?ra=...&dec=...&fov=...` — fetch frames for sky coordinates.
+- `GET /api/frames/{id}/image` — return a frame image.
+- `GET /api/targets` — list preset targets.
+- `GET /api/catalog/targets` — list sample catalog targets.
+- `GET /api/catalog/targets/{id}/observations` — list sample observations.
+- `GET /images/{targetId}/{filename}` — serve catalog sample images.
+
+See [`API_CONTRACT.md`](API_CONTRACT.md) for request and response details. Preset coordinates are in [`data/targets.json`](data/targets.json). Catalog records and files under `images/` are sample fixtures, not verified SPHEREx observations.
+
+## Validation and checks
+
+Validate the sample catalog with Python's standard library:
 
 ```sh
 python tools/catalog/validate_catalog.py
 ```
 
-It intentionally reports errors while the sample catalog contains placeholder values.
+The validator reports errors while the catalog contains placeholder values. To run the preset-target API checks, start the API in mock mode and run:
 
-## API checks
+```sh
+python3 tests/test_sample_targets.py
+```
 
-With the app running in mock mode (`DataMode=mock dotnet run`), run `python3 tests/test_sample_targets.py` to check all five preset frame sets and images. Set `SKYTIME_BASE_URL` to override the default API address. `tests/catalog-api.ps1` remains the PowerShell smoke check for the handoff catalog routes, CORS, and error responses.
+Set `SKYTIME_BASE_URL` to use a different API address. `tests/catalog-api.ps1` provides additional checks for catalog routes, CORS, and error responses.
 
-The API contract for the frames and target endpoints is documented in [API_CONTRACT.md](API_CONTRACT.md).
+## Links
+
+- Live app: <https://skytime-vercel-flat.vercel.app/>
+- Source repository: <https://github.com/Omaar26/Skytime>
