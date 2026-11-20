@@ -3,8 +3,9 @@
 Explore real SPHEREx infrared image cutouts in a browser. Choose one of five preset targets or enter sky coordinates, then blink through returned frames, scrub the sequence, or compare a frame with the first frame from the same detector.
 
 > Skytime is a working prototype for exploring survey data. It does not automatically detect moving objects or claim to find Planet X. Most checked preset results cover one observing day, and the difference view is a visual aid rather than calibrated photometry.
-> 
-> - Live app: <https://skytime-vercel-flat.vercel.app/>
+ 
+  
+Live app: <https://skytime-vercel-flat.vercel.app/>
 
 
 ## The app
